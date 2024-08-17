@@ -8,12 +8,14 @@ This will run in a loop and prompt you for sentinel wallet addresses and amounts
 
 * requires sentinel-sdk
 
+* requires requests
+
 * requires >= python 3.10
 
 To install the dependency:
 
 ```shell
-pip install sentinel-sdk
+pip install sentinel-sdk requests
 ```
 
 Clone the repository
@@ -28,7 +30,7 @@ Within the repository directory, edit the **scrtxxs.py** to your specific parame
 
 * WalletName - The name you will give your sending wallet in the krygin
 
-* HotWalletPW - The Password for your wallet in the keyring
+* HotWalletPW - The Password for MultiPay Keyring
 
 * WalletSeed - The seed phrase of the sending wallet if not already in the keyring. leave blank if you already imported this wallet once before
 
@@ -93,7 +95,5 @@ sent12v8ghhg98e2n0chyje3su4uqlsg75sh4lwcyww
 ```
 zs1gn457262c52z5xa666k77zafqmke0hd60qvc38dk48w9fx378h4zjs5rrwnl0x8qazj4q3x4svz
 ```
-
-
 
 ![ARRR](./img/ARRR.png)

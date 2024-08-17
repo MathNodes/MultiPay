@@ -23,7 +23,7 @@ MNAPI = "https://api.sentinel.mathnodes.com"
 NODEAPI = "/sentinel/nodes/%s"
 GRPC = scrtxxs.GRPC
 SSL = True
-VERSION = 20240817.0234
+VERSION = 20240817.1914
 SATOSHI = 1000000
 
 class MultiPay():
@@ -66,7 +66,7 @@ class MultiPay():
         kr.keyring_key = keyring_passphrase
         return kr 
     
-    def __get_balance(self, address):
+    def get_balance(self, address):
         CoinDict = {'dvpn' : 0, 'scrt' : 0, 'dec'  : 0, 'atom' : 0, 'osmo' : 0}
         #CoinDict = {'tsent' : 0, 'scrt' : 0, 'dec'  : 0, 'atom' : 0, 'osmo' : 0}
         endpoint = "/bank/balances/" + address
@@ -76,7 +76,7 @@ class MultiPay():
         except:
             return None
             
-        print(coinJSON)
+        #print(coinJSON)
         try:
             for coin in coinJSON['result']:
                 if "udvpn" in coin['denom']:
@@ -86,10 +86,7 @@ class MultiPay():
             return None
         return CoinDict
     
-    def SendDVPNs(self, addr_amts):
-        balance = self.__get_balance(self.sdk._account.address)
-        wallet_balance = int(balance.get("dvpn", 0))
-        
+    def SendDVPNs(self, addr_amts, wallet_balance: int):
         amt = 0
         
         # Sum total amount
@@ -120,7 +117,7 @@ class MultiPay():
             tx.add_msg(
                 tx_type='transfer',
                 sender=self.sdk._account,
-                receipient=addr,
+                recipient=addr,
                 amount=udvpn,
                 denom="udvpn",
             )
@@ -154,12 +151,17 @@ class MultiPay():
         
         
 if __name__ == "__main__":
+    print(f"Leeloo Dallas Multipay - A DVPN multipay transactor - by freQniK - version: 5th Element {VERSION}\n\n")
+    print("You will be presented with a loop to enter Sentinel wallet addresses and amt. When finished, enter 'done'")
     mp = MultiPay(scrtxxs.HotWalletPW, scrtxxs.WalletName, scrtxxs.WalletSeed)
+    
+    balance = mp.get_balance(mp.sdk._account.address)
+    wallet_balance = float(int(balance.get("dvpn", 0)) / SATOSHI)
+    
+    print(f"Balance: {wallet_balance} dvpn")
     
     SendDict = {}
     
-    print(f"Leeloo Dallas Multipay - A DVPN multipay transactor - by freQniK - version: 5th Element {VERSION}\n\n")
-    print("You will be presented with a loop to enter Sentinel wallet addresses and amt. When finished, enter 'done'")
     while True:
         addr = input("Enter wallet address: ")
         if addr.upper() == "DONE":
@@ -172,7 +174,7 @@ if __name__ == "__main__":
     print(SendDict)
     answer = input("Would you iike to continue (Y/n): ")
     if answer.upper() == "Y":
-        if mp.SendDVPNs(SendDict):
+        if mp.SendDVPNs(SendDict, int(wallet_balance * SATOSHI)):
             print("Transaction completed successfully. Please check the log file")
             print(f"{scrtxxs.KeyringDIR}/multipay.log")
         else:
