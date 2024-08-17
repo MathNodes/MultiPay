@@ -166,7 +166,7 @@ if __name__ == "__main__":
             break
         amt = input("Enter dvpn amt to send to wallet: ")
         
-        SendDict[addr] = str(int(float(amt) / SATOSHI))
+        SendDict[addr] = str(int(float(amt) * SATOSHI))
         
     print("The following addresses will receive these repsective amounts: ")
     print(SendDict)
