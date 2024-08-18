@@ -16,6 +16,7 @@ import hashlib
 import bech32
 from mospy import Transaction
 from grpc import RpcError
+from Crypto.Hash import RIPEMD160
 
 from datetime import datetime
 
@@ -23,7 +24,7 @@ MNAPI = "https://api.sentinel.mathnodes.com"
 NODEAPI = "/sentinel/nodes/%s"
 GRPC = scrtxxs.GRPC
 SSL = True
-VERSION = 20240817.1914
+VERSION = 20240818.0304
 SATOSHI = 1000000
 
 class MultiPay():
@@ -36,7 +37,7 @@ class MultiPay():
             privkey_obj = ecdsa.SigningKey.from_string(bip44_def_ctx.PrivateKey().Raw().ToBytes(), curve=ecdsa.SECP256k1)
             pubkey  = privkey_obj.get_verifying_key()
             s = hashlib.new("sha256", pubkey.to_string("compressed")).digest()
-            r = hashlib.new("ripemd160", s).digest()
+            r = self.ripemd160(s)
             five_bit_r = bech32.convertbits(r, 8, 5)
             account_address = bech32.bech32_encode("sent", five_bit_r)
             print(account_address)
@@ -55,6 +56,18 @@ class MultiPay():
         
         now = datetime.now()
         self.logfile.write(f"\n---------------------------{now}---------------------------\n")
+    
+    def ripemd160(self, contents: bytes) -> bytes:
+        """
+        Get ripemd160 hash using PyCryptodome.
+    
+        :param contents: bytes contents.
+    
+        :return: bytes ripemd160 hash.
+        """
+        h = RIPEMD160.new()
+        h.update(contents)
+        return h.digest()
         
     def __keyring(self, keyring_passphrase: str):
         if not path.isdir(scrtxxs.KeyringDIR):
@@ -172,7 +185,7 @@ if __name__ == "__main__":
         
     print("The following addresses will receive these repsective amounts: ")
     print(SendDict)
-    answer = input("Would you iike to continue (Y/n): ")
+    answer = input("Would you like to continue (Y/n): ")
     if answer.upper() == "Y":
         if mp.SendDVPNs(SendDict, int(wallet_balance * SATOSHI)):
             print("Transaction completed successfully. Please check the log file")
