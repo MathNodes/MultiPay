@@ -2,6 +2,7 @@
 
 import scrtxxs
 import requests
+import argparse
 import sys
 from os import path, mkdir
 from urllib.parse import urlparse
@@ -111,9 +112,9 @@ class MultiPay():
             return False
         
         tx_params = TxParams(
-            gas=300000,
+            gas=0,
             gas_multiplier=1.15,
-            fee_amount=30000,
+            fee_amount=30000*int(len(addr_amts.values())/4),
             denom="udvpn"
         )
 
@@ -153,38 +154,69 @@ class MultiPay():
             print("debug_error_string", rpc_error.debug_error_string())
             self.logfile.write("[sp]: RPC ERROR. ")
             return False
+        except:
+            print("ERROR Broadcasting")
+            return False
+        
+        #print(tx.get("log"))
         
         if tx.get("log", None) is None:
             tx_response = self.sdk.nodes.wait_for_tx(tx["hash"])
             tx_height = tx_response.get("txResponse", {}).get("height", 0) if isinstance(tx_response, dict) else tx_response.tx_response.height
             
-            message = f"Succefully sent {amt}udvpn at height: {tx_height} distributed by {addr_amts}" if tx.get("log", None) is None else tx["log"]
+            message = f"Succefully sent {amt}udvpn at height: {tx_height} distributed by {addr_amts}, tx: {tx.get('hash', None)}" if tx.get("log", None) is None else tx["log"]
             self.logfile.write(f"[sp]: {message}\n")
             return True
-        
+        else:
+            self.logfile.write(tx.get("log"))
         
 if __name__ == "__main__":
-    print(f"Leeloo Dallas Multipay - A DVPN multipay transactor - by freQniK - version: 5th Element {VERSION}\n\n")
-    print("You will be presented with a loop to enter Sentinel wallet addresses and amt. When finished, enter 'done'")
-    mp = MultiPay(scrtxxs.HotWalletPW, scrtxxs.WalletName, scrtxxs.WalletSeed)
+    SendDict = {}
     
+    parser = argparse.ArgumentParser(description=f"Leeloo Dallas Multipay - A DVPN multipay transactor - by freQniK - version: 5th Element {VERSION}")
+    
+    parser.add_argument('--file', help="absolute path of comma separated payout file. e.g.: (address,dvpn)", metavar="file")
+    args = parser.parse_args()
+    
+    mp = MultiPay(scrtxxs.HotWalletPW, scrtxxs.WalletName, scrtxxs.WalletSeed)
     balance = mp.get_balance(mp.sdk._account.address)
     wallet_balance = float(int(balance.get("dvpn", 0)) / SATOSHI)
     
-    print(f"Balance: {wallet_balance} dvpn")
+    if args.file:
+        with open(args.file, "r") as payoutfile:
+            payoutdata = payoutfile.readlines()
+            
+        for payout in payoutdata:
+            addr,amt = payout.split(',')
+            SendDict[addr] = str(int(float(amt) * SATOSHI))
+            
+    else:
+        print("You will be presented with a loop to enter Sentinel wallet addresses and amt. When finished, enter 'done'")
     
-    SendDict = {}
-    
-    while True:
-        addr = input("Enter wallet address: ")
-        if addr.upper() == "DONE":
-            break
-        amt = input("Enter dvpn amt to send to wallet: ")
-        
-        SendDict[addr] = str(int(float(amt) * SATOSHI))
-        
+        while True:
+            addr = input("Enter wallet address: ")
+            if addr.upper() == "DONE":
+                break
+            amt = input("Enter dvpn amt to send to wallet: ")
+            
+            SendDict[addr] = str(int(float(amt) * SATOSHI))
+            
     print("The following addresses will receive these repsective amounts: ")
     print(SendDict)
+    total = 0
+    
+    for amt in SendDict.values():
+        total += float(amt)
+    
+    totalDVPN = round(float((int(total) / SATOSHI)),4)
+    
+    print(f"\nBalance: {wallet_balance} dvpn")
+    print(f"Payout : {totalDVPN} dvpn")
+    
+    if totalDVPN >= wallet_balance*SATOSHI:
+        print("Total exceeds wallet balance... Quitting")
+        sys.exit(1)
+        
     answer = input("Would you like to continue (Y/n): ")
     if answer.upper() == "Y":
         if mp.SendDVPNs(SendDict, int(wallet_balance * SATOSHI)):
